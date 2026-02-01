@@ -16,3 +16,8 @@ dist/
 
 # Project specific
 *.zip
+*.json
+backend/payload.json
+backend/error.json
+backend/error_check.json
+backend/error_check_mini.json

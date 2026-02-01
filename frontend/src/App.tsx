@@ -17,11 +17,10 @@ function App() {
     const [error, setError] = useState<string | null>(null);
 
     // Config State
-    const [framework] = useState("selenium-python-pytest");
+    const [framework, setFramework] = useState("selenium-python-pytest");
     const [mode, setMode] = useState("full");
     const [url, setUrl] = useState("");
-    const [apiKey, setApiKey] = useState("");
-    const [provider, setProvider] = useState("mock"); // Default to mock for safety
+    const [provider, setProvider] = useState("openai");
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0];
@@ -70,12 +69,16 @@ function App() {
                     framework,
                     url,
                     mode,
-                    api_key: apiKey,
+                    api_key: "",
                     provider
                 }),
             });
 
-            if (!response.ok) throw new Error('Generation failed');
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => null);
+                const errorMessage = errorData?.detail || 'Generation failed';
+                throw new Error(errorMessage);
+            }
 
             // Handle File Download
             const blob = await response.blob();
@@ -139,22 +142,22 @@ function App() {
                                     >
                                         <option value="mock">Mock (Free/Test)</option>
                                         <option value="openai">OpenAI (GPT-4o)</option>
-                                        <option value="anthropic">Anthropic (Claude 3.5)</option>
                                     </select>
                                 </div>
 
-                                {provider !== 'mock' && (
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 mb-1">API Key</label>
-                                        <input
-                                            type="password"
-                                            value={apiKey}
-                                            onChange={(e) => setApiKey(e.target.value)}
-                                            placeholder={`Enter ${provider} key`}
-                                            className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
-                                        />
-                                    </div>
-                                )}
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Test Framework</label>
+                                    <select
+                                        value={framework}
+                                        onChange={(e) => setFramework(e.target.value)}
+                                        className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
+                                    >
+                                        <option value="selenium-python-pytest">Python + Selenium</option>
+                                        <option value="cypress-javascript">Cypress + JavaScript</option>
+                                    </select>
+                                </div>
+
+
 
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1">Target URL (Optional)</label>
@@ -196,7 +199,7 @@ function App() {
                             </p>
                             <button
                                 onClick={handleGenerate}
-                                disabled={!testCases.length || generating || (provider !== 'mock' && !apiKey)}
+                                disabled={!testCases.length || generating}
                                 className={`w-full py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2 transition shadow-lg
                   ${!testCases.length || generating
                                         ? 'bg-white/20 cursor-not-allowed text-white/50'
@@ -244,9 +247,16 @@ function App() {
 
                         {/* Error Message */}
                         {error && (
-                            <div className="bg-red-50 text-red-600 p-4 rounded-xl flex items-center gap-3 border border-red-100">
-                                <AlertCircle className="w-5 h-5" />
-                                {error}
+                            <div className={`p-4 rounded-xl flex items-center gap-3 border ${error.includes('429') || error.includes('quota') ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-red-50 text-red-600 border-red-100'}`}>
+                                <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                                <div>
+                                    <p className="font-semibold">{error.includes('429') || error.includes('quota') ? 'OpenAI API Quota Exceeded' : 'Error Occurred'}</p>
+                                    <p className="text-sm">
+                                        {error.includes('429') || error.includes('quota')
+                                            ? 'The OpenAI API key has run out of credits. Please check your billing at platform.openai.com.'
+                                            : error}
+                                    </p>
+                                </div>
                             </div>
                         )}
 

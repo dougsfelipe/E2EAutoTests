@@ -9,6 +9,9 @@ import json
 import os
 from .services.ai_service import generate_test_code
 from .services.generator import create_project_zip
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = FastAPI(title="AI Test Generator API")
 
@@ -26,7 +29,8 @@ class GenerationRequest(BaseModel):
     framework: str
     url: Optional[str] = None
     mode: str  # "template" or "full"
-    api_key: str
+    mode: str  # "template" or "full"
+    api_key: Optional[str] = None
     provider: str # "openai" or "anthropic"
 
 @app.get("/health")
@@ -63,7 +67,7 @@ async def generate_tests(request: GenerationRequest):
             framework=request.framework,
             url=request.url,
             mode=request.mode,
-            api_key=request.api_key,
+            api_key=request.api_key or os.getenv("OPENAI_API_KEY"),
             provider=request.provider
         )
         
