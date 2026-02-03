@@ -1,0 +1,3 @@
+Test Case ID,Title,Objective,Preconditions,Steps,Expected Result
+TC01,Login Success,Verify user can login,User on login page,"1. Enter user\n2. Enter pass\n3. Click Login",User logged in
+TC02,Login Fail,Verify invalid login,User on login page,"1. Enter invalid user\n2. Click Login",Error message shown

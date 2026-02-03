@@ -82,10 +82,18 @@ function App() {
 
             // Handle File Download
             const blob = await response.blob();
+
+            // Extract filename from header
+            const disposition = response.headers.get('Content-Disposition');
+            let filename = 'test_automation_project.zip';
+            if (disposition && disposition.includes('filename=')) {
+                filename = disposition.split('filename=')[1].replace(/"/g, '');
+            }
+
             const downloadUrl = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = downloadUrl;
-            a.download = 'test_automation_project.zip';
+            a.download = filename;
             document.body.appendChild(a);
             a.click();
             a.remove();

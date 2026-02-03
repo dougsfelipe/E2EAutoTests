@@ -74,10 +74,26 @@ async def generate_tests(request: GenerationRequest):
         # 2. Create ZIP
         zip_buffer = create_project_zip(generated_files)
         
+        # 3. Dynamic Filename
+        website_name = "app"
+        if request.url:
+            # Simple extraction: http://google.com -> google
+            try:
+                from urllib.parse import urlparse
+                domain = urlparse(request.url).netloc
+                if not domain: domain = request.url
+                website_name = domain.split('.')[0] if '.' in domain else domain
+            except:
+                pass
+        
+        # Clean framework string: selenium-python-pytest -> selenium_python
+        fw_short = request.framework.replace("-", "_")
+        filename = f"tests_e2e_{website_name}_{fw_short}.zip"
+
         return StreamingResponse(
             zip_buffer,
             media_type="application/zip",
-            headers={"Content-Disposition": "attachment; filename=test_automation_project.zip"}
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

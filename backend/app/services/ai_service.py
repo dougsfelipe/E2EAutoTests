@@ -31,6 +31,11 @@ Each object must have "path" (relative file path) and "content" (file content).
 - Include `requirements.txt` (selenium, pytest, webdriver-manager).
 - Include `conftest.py` with `driver` fixture (using `webdriver_manager`).
 - Include `pytest.ini`.
+- Include `README.md` with:
+    - Project Description
+    - Prerequisites (Python version, etc.)
+    - Installation commands (`pip install -r requirements.txt`)
+    - Run commands (`pytest`)
 
 **Mapping:**
 - Fill/Type -> `send_keys`
@@ -60,7 +65,12 @@ Each object must have "path" (relative file path) and "content" (file content).
 **Boilerplate:**
 - Include `cypress.config.js`.
 - Include `package.json` (cypress).
-- Include `README.md` with install/run instructions.
+- Include `package.json` (cypress).
+- Include `README.md` with:
+    - Project Description
+    - Prerequisites (Node version, etc.)
+    - Installation commands (`npm install`)
+    - Run commands (`npx cypress run`)
 
 ---
 """
@@ -68,7 +78,7 @@ Each object must have "path" (relative file path) and "content" (file content).
 async def generate_test_code(test_plan: List[Dict], framework: str, url: str, mode: str, api_key: str, provider: str) -> List[Dict[str, str]]:
     
     if provider == "mock":
-        return _generate_mock_files()
+        return _generate_mock_files(test_plan, framework)
 
     prompt = f"""
     Target URL: {url or 'N/A'}
@@ -120,18 +130,86 @@ async def generate_test_code(test_plan: List[Dict], framework: str, url: str, mo
     else:
         raise ValueError("Invalid provider")
 
-def _generate_mock_files():
-    return [
-        {
-            "path": "README.md",
-            "content": "# Mock Project\nThis is a generated mock project."
-        },
-        {
+def _generate_mock_files(test_plan: List[Dict], framework: str) -> List[Dict[str, str]]:
+    files = []
+    
+    # Common helper to sanitize filenames
+    def sanitize(text):
+        return "".join(c if c.isalnum() else "_" for c in text).lower()
+
+    if framework == "selenium-python-pytest":
+        files.append({
             "path": "requirements.txt",
-            "content": "pytest\nselenium"
-        },
-        {
-            "path": "tests/test_mock.py",
-            "content": "def test_example():\n    assert True"
-        }
-    ]
+            "content": "pytest\nselenium\nwebdriver-manager"
+        })
+        files.append({
+            "path": "README.md",
+            "content": "# Selenium Python Project (Mock)\n\n## Prerequisites\n- Python 3.8+\n\n## Setup\n1. Install dependencies:\n   ```bash\n   pip install -r requirements.txt\n   ```\n\n## Running Tests\nRun all tests:\n```bash\npytest\n```"
+        })
+        files.append({
+            "path": "pytest.ini",
+            "content": "[pytest]\naddopts = -v -s"
+        })
+        files.append({
+            "path": "conftest.py",
+            "content": "import pytest\nfrom selenium import webdriver\n\n@pytest.fixture\ndef driver():\n    # implementation here\n    pass"
+        })
+        
+        # Skeleton Pages
+        files.append({
+            "path": "pages/base_page.py",
+            "content": "class BasePage:\n    def __init__(self, driver):\n        self.driver = driver\n    \n    def open(self, url):\n        # implementation here\n        pass"
+        })
+
+        # Skeleton Tests
+        for i, case in enumerate(test_plan):
+            tc_id = sanitize(case.get("Test Case ID", f"tc_{i}"))
+            files.append({
+                "path": f"tests/test_{tc_id}.py",
+                "content": f"from pages.base_page import BasePage\n\ndef test_{tc_id}(driver):\n    # {case.get('Title', 'Test Case')}\n    # Steps: {case.get('Steps', '')}\n    # implementation here\n    pass"
+            })
+
+    elif framework == "cypress-javascript":
+        files.append({
+            "path": "package.json",
+            "content": '{\n  "name": "cypress-mock-project",\n  "devDependencies": {\n    "cypress": "^13.0.0"\n  }\n}'
+        })
+        files.append({
+            "path": "README.md",
+            "content": "# Cypress Project (Mock)\n\n## Prerequisites\n- Node.js 14+\n\n## Setup\n1. Install dependencies:\n   ```bash\n   npm install\n   ```\n\n## Running Tests\nRun Cypress in headless mode:\n```bash\nnpx cypress run\n```\n\nOpen Cypress UI:\n```bash\nnpx cypress open\n```"
+        })
+        files.append({
+            "path": "cypress.config.js",
+            "content": "const { defineConfig } = require('cypress');\n\nmodule.exports = defineConfig({\n  e2e: {\n    setupNodeEvents(on, config) {\n      // implement node event listeners here\n    },\n  },\n});"
+        })
+        files.append({
+            "path": "cypress/support/e2e.js",
+            "content": "// Import commands.js using ES2015 syntax:\nimport './commands'"
+        })
+        files.append({
+            "path": "cypress/support/commands.js",
+            "content": "// implementation here"
+        })
+
+        # Skeleton Tests
+        for i, case in enumerate(test_plan):
+            tc_id = sanitize(case.get("Test Case ID", f"tc_{i}"))
+            content = f"""describe('{case.get('Title', 'Test Case')}', () => {{
+  it('{case.get('Objective', 'should pass')}', () => {{
+    // Steps: {case.get('Steps', '')}
+    // implementation here
+  }});
+}});"""
+            files.append({
+                "path": f"cypress/e2e/{tc_id}.cy.js",
+                "content": content
+            })
+
+    else:
+        # Fallback
+        files.append({
+            "path": "README.md",
+            "content": "# Mock Project\nUnknown framework selected."
+        })
+
+    return files
